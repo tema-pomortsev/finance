@@ -1,0 +1,42 @@
+name: CI
+run-name: CI checks for ${{ github.ref_name }} by @${{ github.actor }}
+on:
+    pull_request:
+    push:
+        branches:
+            - main
+
+permissions:
+    contents: read
+
+jobs:
+    run-linters:
+        name: Run linters
+        runs-on: ubuntu-latest
+
+        steps:
+            -   name: Check out Git repo
+                uses: actions/checkout@v4
+
+            -   name: Set up Node.js
+                uses: actions/setup-node@v4
+                with:
+                    node-version: 24
+                    cache: npm
+
+            -   name: install deps
+                run: npm ci
+
+            -   name: test ts files
+                run: npm run typecheck
+
+            -   name: test lint
+                run: npm run lint
+
+            -   name: build project
+                run: npm run build
+            -   name: upload dist artifacts
+                uses: actions/upload-artifact@v4
+                with:
+                    name: dist
+                    path: dist
