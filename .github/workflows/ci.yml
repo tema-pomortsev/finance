@@ -16,10 +16,10 @@ jobs:
 
         steps:
             -   name: Check out Git repo
-                uses: actions/checkout@v4
+                uses: actions/checkout@v7
 
             -   name: Set up Node.js
-                uses: actions/setup-node@v4
+                uses: actions/setup-node@v7
                 with:
                     node-version: 24
                     cache: npm
@@ -37,7 +37,7 @@ jobs:
                 run: npm run build
             -   name: upload dist artifacts
                 if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-                uses: actions/upload-artifact@v6
+                uses: actions/upload-artifact@v7
                 with:
                     name: dist
                     path: dist
