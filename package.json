@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "typecheck": "tsctest",
+    "typecheck": "tsc",
     "preview": "vite preview"
   },
   "dependencies": {
