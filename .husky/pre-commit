@@ -1,0 +1,9 @@
+#!/bin/sh
+
+echo "checks tsc..."
+
+npm run typecheck
+
+echo "checks lint..."
+
+npm run lint
