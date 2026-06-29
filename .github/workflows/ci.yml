@@ -3,6 +3,8 @@ run-name: CI checks for ${{ github.ref_name }} by @${{ github.actor }}
 on:
     pull_request:
     push:
+        branches:
+            - master
 
 permissions:
     contents: read
@@ -47,11 +49,18 @@ jobs:
 
             -   name: Build
                 run: npm run build
-            -   name: Upload dist artifact
+            -   name: Upload PR preview artifact
+                uses: actions/upload-artifact@v6
+                if: github.event_name == 'pull_request'
+                with:
+                    name: pr-preview-${{ github.event.pull_request.number }}
+                    path: dist
+
+            -   name: Upload production build artifact
                 uses: actions/upload-artifact@v6
                 if: github.event_name == 'push' && github.ref == 'refs/heads/master'
                 with:
-                    name: pr-preview-${{ github.event.pull_request.number }}
+                    name: dist-${{ github.sha }}
                     path: dist
 
     comment_to_pr:
