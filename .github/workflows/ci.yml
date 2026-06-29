@@ -3,41 +3,70 @@ run-name: CI checks for ${{ github.ref_name }} by @${{ github.actor }}
 on:
     pull_request:
     push:
-        branches:
-            - main
 
 permissions:
     contents: read
+    pull-requests: write
+    issues: write
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 jobs:
-    run-linters:
-        name: Run linters
+    lint:
+        name: Check the quality of code style
         runs-on: ubuntu-latest
 
         steps:
-            -   name: Check out Git repo
-                uses: actions/checkout@v7
-
-            -   name: Set up Node.js
-                uses: actions/setup-node@v6
-                with:
-                    node-version: 24
-                    cache: npm
-
-            -   name: install deps
-                run: npm ci
-
-            -   name: test ts files
-                run: npm run typecheck
+            -   uses: actions/checkout@v7
+            -   uses: ./.github/actions/setup-project
 
             -   name: test lint
                 run: npm run lint
 
-            -   name: build project
+    typecheck:
+        name: Check the quality of types
+        runs-on: ubuntu-latest
+
+        steps:
+            -   uses: actions/checkout@v7
+            -   uses: ./.github/actions/setup-project
+
+            -   name: test ts files
+                run: npm run typecheck
+
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        needs: [lint, typecheck]
+
+        steps:
+            -   uses: actions/checkout@v7
+            -   uses: ./.github/actions/setup-project
+
+            -   name: Build
                 run: npm run build
-            -   name: upload dist artifacts
+            -   name: Upload dist artifact
+                uses: actions/upload-artifact@v6
                 if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-                uses: actions/upload-artifact@v7
                 with:
-                    name: dist
+                    name: pr-preview-${{ github.event.pull_request.number }}
                     path: dist
+
+    comment_to_pr:
+        name: Comment about success
+        runs-on: ubuntu-latest
+        needs: [build]
+        if: github.event_name == 'pull_request'
+
+        steps:
+            -   uses: actions/github-script@v9
+                with:
+                    script: |
+                        github.rest.issues.createComment({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            issue_number: context.issue.number,
+                            body: '✅ CI passed'
+                        })
