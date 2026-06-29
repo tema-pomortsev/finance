@@ -3,12 +3,11 @@ run-name: CI checks for ${{ github.ref_name }} by @${{ github.actor }}
 on:
     pull_request:
     push:
-        branches:
-            - main
 
 permissions:
     contents: read
     pull-requests: write
+    issues: write
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -23,10 +22,8 @@ jobs:
             -   uses: actions/checkout@v7
             -   uses: ./.github/actions/setup-project
 
-            -   name: test ts files
-                run: npm run typecheck
-
-
+            -   name: test lint
+                run: npm run lint
 
     typecheck:
         name: Check the quality of types
@@ -35,8 +32,9 @@ jobs:
         steps:
             -   uses: actions/checkout@v7
             -   uses: ./.github/actions/setup-project
-            -   name: test lint
-                run: npm run lint
+
+            -   name: test ts files
+                run: npm run typecheck
 
     build:
         name: Build
@@ -50,11 +48,11 @@ jobs:
             -   name: Build
                 run: npm run build
             -   name: Upload dist artifact
-                uses: actions/upload-artifact@v7
+                uses: actions/upload-artifact@v6
                 if: github.event_name == 'push' && github.ref == 'refs/heads/master'
                 with:
-                    name: dist
-                    path: dist-${{ github.event.pull_request.number }}
+                    name: pr-preview-${{ github.event.pull_request.number }}
+                    path: dist
 
     comment_to_pr:
         name: Comment about success
