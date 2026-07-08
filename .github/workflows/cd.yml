@@ -13,7 +13,7 @@ jobs:
         runs-on: ubuntu-latest
 
         outputs:
-            short_sha: ${{ steps.outputs.short_sha }}
+            short_sha: ${{ steps.commit.outputs.short_sha }}
 
         steps:
             -   uses: actions/checkout@v7
@@ -56,7 +56,7 @@ jobs:
                     key: ${{ secrets.VPS_SSH_KEY }}
                     port: 22
                     script: |
-                        IMAGE="ghcr.io/tema-pomortsev/finance:sha-${{ needs.build-and-push.outputs.short_sha }}
+                        IMAGE="ghcr.io/tema-pomortsev/finance:sha-${{ needs.build-and-push.outputs.short_sha }}"
                         docker pull "$IMAGE"
 
                         docker stop finance || true
