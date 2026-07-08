@@ -49,5 +49,15 @@ jobs:
                     key: ${{ secrets.VPS_SSH_KEY }}
                     port: 22
                     script: |
-                        whoami
-                        hostname
+                        docker pull ghcr.io/tema-pomortsev/finance:latest
+
+                        docker stop finance || true
+                        docker rm finance || true
+                        
+                        docker run -d \
+                        --name finance \
+                        --restart unless-stopped \
+                        -p 80:80 \
+                        ghcr.io/tema-pomortsev/finance:latest
+                        
+                        docker ps --filter name=finance
