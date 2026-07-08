@@ -59,46 +59,31 @@ jobs:
                         set -e
                         
                         IMAGE="ghcr.io/tema-pomortsev/finance:sha-${{ needs.build-and-push.outputs.short_sha }}"
-                        PREV_IMAGE=$(docker inspect --format='{{.Config.Image}}' finance 2>/dev/null || true)
                         
-                        echo "Deploying: $IMAGE"
-                        echo "Previous image: ${PREV_IMAGE:-none}"
+                        cd /opt/finance
                         
-                        docker pull "$IMAGE"
+                        PREV_IMAGE=$(grep '^FINANCE_IMAGE=' .env | cut -d= -f2-)
                         
-                        docker stop finance 2>/dev/null || true
-                        docker rm finance 2>/dev/null || true
+                        echo "Deploying $IMAGE"
+                        echo "Previous image: $PREV_IMAGE"
                         
-                        docker run -d \
-                          --name finance \
-                          --restart unless-stopped \
-                          -p 80:80 \
-                          "$IMAGE"
+                        echo "FINANCE_IMAGE=$IMAGE" > .env
                         
-                        sleep 5
+                        docker compose pull
                         
-                        if curl --fail --silent --show-error http://127.0.0.1/404 > /dev/null; then
-                          echo "Healthcheck passed"
+                        if docker compose up -d --wait --wait-timeout 60; then
+                            echo "Healthcheck passed"
                         else
-                          echo "Healthcheck failed"
-                          docker logs finance || true
+                            echo "Deploy failed, rolling back"
                         
-                          docker stop finance || true
-                          docker rm finance || true
+                            docker compose logs finance || true
                         
-                          if [ -n "$PREV_IMAGE" ]; then
-                            echo "Rolling back to $PREV_IMAGE"
+                            echo "FINANCE_IMAGE=$PREV_IMAGE" > .env
                         
-                            docker run -d \
-                              --name finance \
-                              --restart unless-stopped \
-                              -p 80:80 \
-                              "$PREV_IMAGE"
-                          else
-                            echo "No previous image available for rollback"
-                          fi
+                            docker compose pull
+                            docker compose up -d --wait --wait-timeout 60
                         
-                          exit 1
+                            exit 1
                         fi
                         
-                        docker ps --filter name=finance
+                        docker compose ps
