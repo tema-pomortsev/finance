@@ -20,14 +20,12 @@ inputs:
 runs:
   using: "composite"
   steps:
-    -   uses: actions/checkout@v7
-
     -   name: Copy deploy script to VPS
         uses: appleboy/scp-action@v1
         with:
           host: ${{ inputs.vps_host }}
           username: ${{ inputs.vps_user }}
           key: ${{ inputs.vps_ssh_key }}
-          port: 22
-          source: scripts/deploy-environment.sh
+          port: ${{ inputs.port }}
+          source: .github/scripts/deploy-environment.sh
           target: /opt/finance

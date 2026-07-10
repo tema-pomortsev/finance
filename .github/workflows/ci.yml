@@ -4,7 +4,7 @@ on:
     pull_request:
     push:
         branches:
-            - master
+            - main
 
 permissions:
     contents: read
@@ -58,7 +58,7 @@ jobs:
 
             -   name: Upload production build artifact
                 uses: actions/upload-artifact@v6
-                if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+                if: github.event_name == 'push' && github.ref == 'refs/heads/main'
                 with:
                     name: dist-${{ github.sha }}
                     path: dist
