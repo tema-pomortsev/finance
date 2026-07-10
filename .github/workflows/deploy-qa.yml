@@ -1,4 +1,4 @@
-name: deploy-qa.yml
+name: Deploy QA
 on:
     workflow_dispatch:
 
@@ -27,7 +27,7 @@ jobs:
     
                         IMAGE=$(grep '^FINANCE_IMAGE=' .env.dev | cut -d= -f2-)
                         
-                        /opt/finance/.github/scripts/deploy-environment.sh \
+                        bash /opt/finance/.github/scripts/deploy-environment.sh \
                             qa \
                             "$IMAGE" \
                             finance-qa \

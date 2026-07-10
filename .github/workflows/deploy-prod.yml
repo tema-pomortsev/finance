@@ -1,4 +1,4 @@
-name: deploy-prod.yml
+name: Deploy PROD
 on:
     workflow_dispatch:
 
@@ -30,8 +30,8 @@ jobs:
                         cd /opt/finance
     
                         IMAGE=$(grep '^FINANCE_IMAGE=' .env.qa | cut -d= -f2-)
-    
-                        /opt/finance/.github/scripts/deploy-environment.sh \
+                        
+                        bash /opt/finance/.github/scripts/deploy-environment.sh \
                             prod \
                             "$IMAGE" \
                             finance-prod \
