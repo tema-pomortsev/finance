@@ -22,7 +22,7 @@ jobs:
 
         steps:
             -   uses: actions/checkout@v7
-            -   uses: ./.github/actions/setup-project
+            -   uses: ./.github/actions/setup-node
 
             -   name: test lint
                 run: npm run lint
@@ -33,7 +33,7 @@ jobs:
 
         steps:
             -   uses: actions/checkout@v7
-            -   uses: ./.github/actions/setup-project
+            -   uses: ./.github/actions/setup-node
 
             -   name: test ts files
                 run: npm run typecheck
@@ -45,7 +45,7 @@ jobs:
 
         steps:
             -   uses: actions/checkout@v7
-            -   uses: ./.github/actions/setup-project
+            -   uses: ./.github/actions/setup-node
 
             -   name: Build
                 run: npm run build
