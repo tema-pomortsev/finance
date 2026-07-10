@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-ENVIRONMENT="$1"
-IMAGE="$2"
-PROJECT_NAME="$3"
-ENV_FILE="$4"
-COMPOSE_OVERRIDE="$5"
+ENVIRONMENT="${1:?Environment is required}"
+IMAGE="${2:?Image is required}"
+PROJECT_NAME="${3:?Project name is required}"
+ENV_FILE="${4:?Env file is required}"
+COMPOSE_OVERRIDE="${5:?Compose override is required}"
 
 cd /opt/finance
 
