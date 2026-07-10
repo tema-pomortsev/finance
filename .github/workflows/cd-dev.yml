@@ -80,12 +80,9 @@ jobs:
                     key: ${{ secrets.VPS_SSH_KEY }}
                     port: 22
                     script: |
-                        script: |
-                            chmod +x /opt/finance/.github/scripts/deploy-environment.sh
-                            
-                            /opt/finance/.github/scripts/deploy-environment.sh \
-                                dev \
-                                "ghcr.io/tema-pomortsev/finance:sha-${{ needs.build-and-push.outputs.short_sha }}" \
-                                finance-dev \
-                                .env.dev \
-                                compose.dev.yml
+                        bash /opt/finance/.github/scripts/deploy-environment.sh \
+                            dev \
+                            "ghcr.io/tema-pomortsev/finance:sha-${{ needs.build-and-push.outputs.short_sha }}" \
+                            finance-dev \
+                            .env.dev \
+                            compose.dev.yml
