@@ -1,0 +1,38 @@
+name: deploy-prod.yml
+on:
+    workflow_dispatch:
+        inputs:
+            image_tag:
+                description: Docker image to deploy
+                required: true
+                type: string
+
+jobs:
+    deploy-prod:
+        runs-on: ubuntu-latest
+        environment: prod
+
+        steps:
+            -   uses: actions/checkout@v7
+            -   uses: ./.github/actions/copy-script
+                with:
+                    vps_host: ${{ secrets.VPS_HOST }}
+                    vps_user: ${{ secrets.VPS_USER }}
+                    vps_ssh_key: ${{ secrets.VPS_SSH_KEY }}
+
+            -   name: Deploy PROD
+                uses: appleboy/ssh-action@v1
+                with:
+                    host: ${{ secrets.VPS_HOST }}
+                    username: ${{ secrets.VPS_USER }}
+                    key: ${{ secrets.VPS_SSH_KEY }}
+                    port: 22
+                    script: |
+                        chmod +x /opt/finance/scripts/deploy-environment.sh
+                        
+                        /opt/finance/scripts/deploy-environment.sh \
+                            prod \
+                            "ghcr.io/tema-pomortsev/finance:${{ inputs.image_tag }}" \
+                            finance-prod \
+                            .env.prod \
+                            compose.prod.yml
