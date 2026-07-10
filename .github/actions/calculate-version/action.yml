@@ -1,0 +1,81 @@
+name: Calculate version
+
+description: Calculate the next semantic version from Git tags
+
+inputs:
+    release-type:
+        description: Release type
+        required: true
+
+outputs:
+    current-version:
+        description: Current project version
+        value: ${{ steps.version.outputs.current-version }}
+
+    version:
+        description: Next project version without v prefix
+        value: ${{ steps.version.outputs.version }}
+
+    tag:
+        description: Next project version with v prefix
+        value: ${{ steps.version.outputs.tag }}
+
+runs:
+    using: composite
+
+    steps:
+        - name: Calculate next version
+          id: version
+          shell: bash
+          run: |
+              set -euo pipefail
+              
+              git fetch --tags --force
+              
+              CURRENT_TAG=$(git tag \
+                --list 'v[0-9]*.[0-9]*.[0-9]*' \
+                --sort=-version:refname \
+                | head -n 1)
+              
+              CURRENT_TAG=${CURRENT_TAG:-v0.0.0}
+              CURRENT_VERSION=${CURRENT_TAG#v}
+              
+              if [[ ! "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "Invalid current version: $CURRENT_VERSION"
+                exit 1
+              fi
+              
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+              
+              case "${{ inputs['release-type'] }}" in
+                patch)
+                  PATCH=$((PATCH + 1))
+                  ;;
+              
+                minor)
+                  MINOR=$((MINOR + 1))
+                  PATCH=0
+                  ;;
+              
+                major)
+                  MAJOR=$((MAJOR + 1))
+                  MINOR=0
+                  PATCH=0
+                  ;;
+              
+                *)
+                  echo "Unsupported release type: ${{ inputs['release-type'] }}"
+                  exit 1
+                  ;;
+              esac
+              
+              VERSION="${MAJOR}.${MINOR}.${PATCH}"
+              TAG="v${VERSION}"
+              
+              echo "Current version: ${CURRENT_VERSION}"
+              echo "Next version: ${VERSION}"
+              echo "Next tag: ${TAG}"
+              
+              echo "current-version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
+              echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+              echo "tag=${TAG}" >> "$GITHUB_OUTPUT"

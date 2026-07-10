@@ -1,0 +1,162 @@
+name: Prepare Release
+
+run-name: Prepare ${{ inputs.release-type }} release by @${{ github.actor }}
+
+on:
+    workflow_dispatch:
+        inputs:
+            release-type:
+                description: Select release type
+                required: true
+                type: choice
+                default: patch
+                options:
+                    - patch
+                    - minor
+                    - major
+
+permissions:
+    contents: read
+
+concurrency:
+    group: prepare-release
+    cancel-in-progress: false
+
+jobs:
+    prepare-release:
+        name: Create release pull request
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout main branch
+              uses: actions/checkout@v4
+              with:
+                  ref: main
+                  fetch-depth: 0
+                  token: ${{ secrets.RELEASE_TOKEN }}
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Calculate next version
+              id: version
+              uses: ./.github/actions/calculate-version
+              with:
+                  release-type: ${{ inputs.release-type }}
+
+            - name: Check release branch and tag
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+                  TAG: ${{ steps.version.outputs.tag }}
+              run: |
+                  set -euo pipefail
+                  
+                  BRANCH="release/${TAG}"
+                  
+                  if git ls-remote \
+                    --exit-code \
+                    --heads origin "$BRANCH" > /dev/null 2>&1; then
+                    echo "Branch ${BRANCH} already exists"
+                    exit 1
+                  fi
+                  
+                  if git ls-remote \
+                    --exit-code \
+                    --tags origin "refs/tags/${TAG}" > /dev/null 2>&1; then
+                    echo "Tag ${TAG} already exists"
+                    exit 1
+                  fi
+                  
+                  echo "Release branch and tag are available"
+
+            - name: Configure Git
+              run: |
+                  git config user.name "release-bot"
+                  git config user.email "release-bot@users.noreply.github.com"
+
+            - name: Create release branch
+              env:
+                  TAG: ${{ steps.version.outputs.tag }}
+              run: |
+                  set -euo pipefail
+                  
+                  git switch --create "release/${TAG}"
+
+            - name: Bump package version
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  set -euo pipefail
+                  
+                  npm version "$VERSION" --no-git-tag-version
+                  
+                  echo "Updated package version:"
+                  node --print "require('./package.json').version"
+
+            - name: Commit version bump
+              env:
+                  TAG: ${{ steps.version.outputs.tag }}
+              run: |
+                  set -euo pipefail
+                  
+                  git add package.json
+                  
+                  if [[ -f package-lock.json ]]; then
+                    git add package-lock.json
+                  fi
+                  
+                  if git diff --cached --quiet; then
+                    echo "No version changes detected"
+                    exit 1
+                  fi
+                  
+                  git commit \
+                    --message "chore(release): bump version to ${TAG}"
+
+            - name: Push release branch
+              env:
+                  TAG: ${{ steps.version.outputs.tag }}
+              run: |
+                  set -euo pipefail
+                  
+                  git push \
+                    --set-upstream origin \
+                    "release/${TAG}"
+
+            - name: Create release pull request
+              env:
+                  GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+                  VERSION: ${{ steps.version.outputs.version }}
+                  TAG: ${{ steps.version.outputs.tag }}
+                  CURRENT_VERSION: ${{ steps.version.outputs.current-version }}
+              run: |
+                  set -euo pipefail
+                  
+                  BODY=$(cat <<EOF
+                  ## Release ${TAG}
+                  
+                  Automated release pull request.
+                  
+                  Version change:
+                  
+                  ${CURRENT_VERSION} → ${VERSION}
+                  
+                  Release type:
+                  
+                  ${{ inputs.release-type }}
+                  
+                  After this pull request is reviewed and merged:
+                  
+                  - the ${TAG} Git tag will be created;
+                  - a GitHub Release will be published.
+                  EOF
+                  )
+                  
+                  gh pr create \
+                    --base main \
+                    --head "release/${TAG}" \
+                    --title "chore(release): ${TAG}" \
+                    --body "$BODY"
