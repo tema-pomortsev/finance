@@ -50,6 +50,12 @@ jobs:
         needs: build-and-push
 
         steps:
+            -   uses: actions/checkout@v7
+            -   uses: ./.github/actions/copy-script
+                with:
+                    vps_host: ${{ secrets.VPS_HOST }}
+                    vps_user: ${{ secrets.VPS_USER }}
+                    vps_ssh_key: ${{ secrets.VPS_SSH_KEY }}
             -   name: Deploy application to dev stand
                 uses: appleboy/ssh-action@v1
                 with:
@@ -58,59 +64,11 @@ jobs:
                     key: ${{ secrets.VPS_SSH_KEY }}
                     port: 22
                     script: |
-                        set -e
+                        chmod +x /opt/finance/scripts/deploy-environment.sh
                         
-                        IMAGE="ghcr.io/tema-pomortsev/finance:sha-${{ needs.build-and-push.outputs.short_sha }}"
-                        
-                        cd /opt/finance
-                        
-                        PREV_IMAGE=$(grep '^FINANCE_IMAGE=' .env.dev | cut -d= -f2-)
-                        
-                        echo "Deploying $IMAGE to dev"
-                        echo "Previous dev image: $PREV_IMAGE"
-                        
-                        echo "FINANCE_IMAGE=$IMAGE" > .env.dev
-                        
-                        docker compose \
-                            --project-name finance-dev \
-                            --env-file .env.dev \
-                            -f compose.yml \
-                            -f compose.dev.yml \
-                            pull
-                        
-                        if docker compose \
-                            --project-name finance-dev \
-                            --env-file .env.dev \
-                            -f compose.yml \
-                            -f compose.dev.yml \
-                            up -d --wait --wait-timeout 60
-                        then
-                            echo "Dev deployment succeeded"
-                        else
-                            echo "Dev deployment failed"
-                        
-                            docker compose \
-                                --project-name finance-dev \
-                                --env-file .env.dev \
-                                -f compose.yml \
-                                -f compose.dev.yml \
-                                logs finance || true
-                            
-                            echo "FINANCE_IMAGE=$PREV_IMAGE" > .env.dev
-                        
-                            docker compose \
-                                --project-name finance-dev \
-                                --env-file .env.dev \
-                                -f compose.yml \
-                                -f compose.dev.yml \
-                                pull
-                            
-                            docker compose \
-                                --project-name finance-dev \
-                                --env-file .env.dev \
-                                -f compose.yml \
-                                -f compose.dev.yml \
-                                up -d --wait --wait-timeout 60
-                        
-                            exit 1
-                        fi
+                        /opt/finance/scripts/deploy-environment.sh \
+                            prod \
+                            "ghcr.io/tema-pomortsev/finance:${{ inputs.image_tag }}" \
+                            finance-prod \
+                            .env.prod \
+                            compose.prod.yml
