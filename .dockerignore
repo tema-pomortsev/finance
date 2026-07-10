@@ -1,6 +1,8 @@
 node_modules
-npm-debug.log
 dist
-build
 .git
 .github
+.idea
+.vscode
+README.md
+*.log
