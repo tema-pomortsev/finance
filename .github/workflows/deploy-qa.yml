@@ -1,0 +1,8 @@
+name: deploy-dev.yml
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    deploy:
